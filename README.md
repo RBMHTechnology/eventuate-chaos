@@ -14,86 +14,10 @@ Prerequisites
 
 ### Custom routing
 
-By default, docker containers running in the boot2docker VM are not directly accessible from Mac OS. To make them accessible, packets targeted at the docker container IP addresses must be routed to the boot2docker VM. The approach taken here was inspired by the article [Accessing docker container private network easily from your boot2docker host](http://ispyker.blogspot.de/2014/04/accessing-docker-container-private.html) and has been slightly modified.
+By default, docker containers running in the boot2docker VM are not directly accessible from Mac OS. To make them accessible, packets targeted at the docker container IP addresses must be routed to the boot2docker VM. The approach taken here was inspired by the article [Accessing docker container private network easily from your boot2docker host](http://ispyker.blogspot.de/2014/04/accessing-docker-container-private.html) and has been slightly modified. Assuming that Docker containers have IP addresses `172.17.x.x`, a route to the boot2docker VM is added with: 
 
-In this and the following sections, the command prompt in Mac OS terminals is:
-
-    almdudler:~ martin$
-
-The command prompt in terminals in the boot2docker VM is:
-
-    docker@boot2docker:~$
-
-The first step for setting up a custom route is the creation of a host-only network in VirtualBox. From the menu *VirtualBox -> Preferences -> Network -> Host-only Networks* create a new network which is *vboxnet2* in this example:
-
-![Create network](img/vbox-1.png)
-
-Edit the new network with the following settings:
-
-![Edit network](img/vbox-2.png)
-
-The next step requires changes to the boot2docker VM settings, hence it needs to be stopped:
-
-    almdudler:~ martin$ boot2docker stop
-
-Right-click the *boot2docker-vm* in the VirtualBox UI and select *Settings -> Network* from the context menu. Create a new adapter (*Adapter 3* in this example) with the following settings:
-
-![Edit adapter](img/vbox-3.png)
-
-Then start the boot2docker VM again:
-
-    almdudler:~ martin$ boot2docker start
-    Waiting for VM and Docker daemon to start...
-    ..........ooooooooo
-    Started.
-
-Configuring *Adapter 3* in the VirtualBox UI created an `eth2` network interface in the boot2docker VM (see matching MAC address): 
-
-    almdudler:~ martin$ boot2docker ssh
-                            ##         .
-                      ## ## ##        ==
-                   ## ## ## ## ##    ===
-               /"""""""""""""""""\___/ ===
-          ~~~ {~~ ~~~~ ~~~ ~~~~ ~~~ ~ /  ===- ~~~
-               \______ o           __/
-                 \    \         __/
-                  \____\_______/
-     _                 _   ____     _            _
-    | |__   ___   ___ | |_|___ \ __| | ___   ___| | _____ _ __
-    | '_ \ / _ \ / _ \| __| __) / _` |/ _ \ / __| |/ / _ \ '__|
-    | |_) | (_) | (_) | |_ / __/ (_| | (_) | (__|   <  __/ |
-    |_.__/ \___/ \___/ \__|_____\__,_|\___/ \___|_|\_\___|_|
-    Boot2Docker version 1.6.2, build master : 4534e65 - Wed May 13 21:24:28 UTC 2015
-    Docker version 1.6.2, build 7c8fca2
-    docker@boot2docker:~$ ifconfig eth2
-    eth2      Link encap:Ethernet  HWaddr 08:00:27:03:44:05  
-              inet6 addr: fe80::a00:27ff:fe03:4405/64 Scope:Link
-              UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
-              RX packets:0 errors:0 dropped:0 overruns:0 frame:0
-              TX packets:32 errors:0 dropped:0 overruns:0 carrier:0
-              collisions:0 txqueuelen:1000 
-              RX bytes:0 (0.0 B)  TX bytes:8856 (8.6 KiB)
-    
-Configure this interface with the IP address `172.16.0.11` and netmask `255.255.0.0`:
-
-    docker@boot2docker:~$ sudo ifconfig eth2 172.16.0.11
-    docker@boot2docker:~$ sudo ifconfig eth2 netmask 255.255.0.0
-    docker@boot2docker:~$ ifconfig eth2
-    eth2      Link encap:Ethernet  HWaddr 08:00:27:03:44:05  
-              inet addr:172.16.0.11  Bcast:172.16.255.255  Mask:255.255.0.0
-              inet6 addr: fe80::a00:27ff:fe03:4405/64 Scope:Link
-              UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
-              RX packets:0 errors:0 dropped:0 overruns:0 frame:0
-              TX packets:38 errors:0 dropped:0 overruns:0 carrier:0
-              collisions:0 txqueuelen:1000 
-              RX bytes:0 (0.0 B)  TX bytes:10908 (10.6 KiB)
-
-Assuming that Docker containers have IP addresses `172.17.x.x`, the final step is adding a route to the Mac OS routing tables that routes all traffic targeted at `172.17.x.x` to `172.16.0.11`: 
-
-    almdudler:~ martin$ sudo route -n add 172.17.0.0/16 172.16.0.11
-    add net 172.17.0.0: gateway 172.16.0.11
-
-Setting the IP address and netmask of `eth2` as well as adding the route to Mac OS must be repeated if the boot2docker VM or Mac OS is restarted, respectively. This can be automated of course but is not shown here.
+    almdudler:~ martin$ sudo route -n add 172.17.0.0/16 `boot2docker ip`
+    add net 172.17.0.0: gateway 192.168.59.103
 
 Running a Cassandra cluster
 ---------------------------
