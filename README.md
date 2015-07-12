@@ -1,5 +1,5 @@
-Eventuate chaos testing utilities for Mac OS X
-==============================================
+Eventuate chaos testing utilities
+=================================
 
 This is very early work in progress on chaos testing utilities for [Eventuate](https://github.com/RBMHTechnology/eventuate) and [Apache Cassandra](http://cassandra.apache.org/). They should help developers running Cassandra clusters and Eventuate applications on a single Mac OS X machine with [Docker](https://www.docker.com/) and generate failures by randomly stopping and restarting containers.
 
@@ -119,7 +119,7 @@ Running a Cassandra cluster with random node failures
 
 For running a cluster with random node failures, start the [`ChaosCluster`](https://github.com/RBMHTechnology/eventuate-chaos/blob/master/src/main/scala/com/rbmhtechnology/eventuate/chaos/ChaosCluster.scala) application from the sbt command prompt:
 
-    almdudler:~ martin$ ./cluster-stop.sh
+    almdudler:~ martin$ sbt
     [info] Loading global plugins from /Users/martin/.sbt/0.13/plugins
     [info] Loading project definition from /Users/martin/eventuate-chaos/project
     [info] Set current project to eventuate-chaos (in build file:/Users/martin/eventuate-chaos/)
@@ -155,3 +155,17 @@ Pressing any key a second time stops the cluster and removes all containers:
     cassandra-4
     Cluster stopped
     [success] Total time: 77 s, completed 11.07.2015 17:12:22
+
+Accessing the cluster seed node
+-------------------------------
+
+From the command line, the IP address of the cluster seed node (`cassandra-1`) can be obtained with: 
+
+    almdudler:~ martin$ docker inspect --format='{{ .NetworkSettings.IPAddress }}' cassandra-1
+    172.17.0.1
+
+Programmatically, applications can use the [`ChaosCommands`](https://github.com/RBMHTechnology/eventuate-chaos/blob/master/src/main/scala/com/rbmhtechnology/eventuate/chaos/ChaosCluster.scala) trait and obtain the seed node `InetAddress` via the `seedAddress` method: 
+
+```scala
+def seedAddress(): Try[InetAddress]
+```
