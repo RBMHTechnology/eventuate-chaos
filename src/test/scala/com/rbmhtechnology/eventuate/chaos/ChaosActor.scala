@@ -16,7 +16,7 @@
 
 package com.rbmhtechnology.eventuate.chaos
 
-import java.net.InetSocketAddress
+import java.net.InetAddress
 
 import akka.actor._
 
@@ -29,7 +29,7 @@ import scala.util._
 import scala.concurrent.duration._
 
 object ChaosActor extends App with ChaosCommands {
-  def defaultConfig(seed: InetSocketAddress) = ConfigFactory.parseString(
+  def defaultConfig(seed: InetAddress) = ConfigFactory.parseString(
     s"""
        |akka.actor.provider = "akka.remote.RemoteActorRefProvider"
        |akka.remote.enabled-transports = ["akka.remote.netty.tcp"]
@@ -38,11 +38,11 @@ object ChaosActor extends App with ChaosCommands {
        |akka.test.single-expect-default = 10s
        |akka.loglevel = "ERROR"
        |
-       |eventuate.log.cassandra.contact-points = ["${seed.getHostName}:${seed.getPort}"]
+       |eventuate.log.cassandra.contact-points = ["${seed.getHostName}"]
        |eventuate.log.cassandra.replication-factor = 3
      """.stripMargin)
 
-  def runChaosActor(seed: InetSocketAddress): Unit = {
+  def runChaosActor(seed: InetAddress): Unit = {
     val system = ActorSystem("chaos", defaultConfig(seed))
     val log = system.actorOf(CassandraEventLog.props("chaos"))
     val actor = system.actorOf(Props(new ChaosActor(log)))

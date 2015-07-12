@@ -16,7 +16,7 @@
 
 package com.rbmhtechnology.eventuate.chaos
 
-import java.net.InetSocketAddress
+import java.net.InetAddress
 
 import scala.collection.immutable.Seq
 import scala.sys.process._
@@ -43,8 +43,8 @@ trait ChaosCommands {
   def killNodes(nodes: Seq[Int]): Try[Unit] =
     runCommand(Seq("docker", "kill") ++ nodes.map(i => s"cassandra-$i"))
 
-  def seedAddress(): Try[InetSocketAddress] =
-    runCommand(Seq("docker", "inspect", "--format='{{ .NetworkSettings.IPAddress }}'", "cassandra-1"), _.!!.trim).map(InetSocketAddress.createUnresolved(_, 9042))
+  def seedAddress(): Try[InetAddress] =
+    runCommand(Seq("docker", "inspect", "--format='{{ .NetworkSettings.IPAddress }}'", "cassandra-1"), _.!!.trim).map(InetAddress.getByName(_))
 
   private def runCommand(command: String): Try[Unit] =
     runCommand(Seq(command))

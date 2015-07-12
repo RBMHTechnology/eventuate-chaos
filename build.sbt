@@ -10,6 +10,7 @@ resolvers += "Eventuate Releases" at "https://dl.bintray.com/rbmhtechnology/mave
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"  %% "akka-actor"    % "2.4-M2",
-  "com.rbmhtechnology" %% "eventuate"     % "0.2.1" % "test",
-  "org.slf4j"           % "slf4j-log4j12" % "1.7.9" % "test"
+  "com.typesafe.akka"  %% "akka-remote"   % "2.4-M2" % "test",
+  "com.rbmhtechnology" %% "eventuate"     % "0.2.1"  % "test",
+  "org.slf4j"           % "slf4j-log4j12" % "1.7.9"  % "test"
 )
