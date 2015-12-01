@@ -16,20 +16,20 @@
 
 package com.rbmhtechnology.eventuate.chaos
 
-import java.net.InetAddress
-
 import akka.actor._
 
 import com.rbmhtechnology.eventuate._
+import com.rbmhtechnology.eventuate.chaos.ChaosActorInterface.HealthCheckResult
 import com.rbmhtechnology.eventuate.log.cassandra._
 import com.typesafe.config.ConfigFactory
 
+import scala.concurrent.Await
 import scala.io.StdIn
 import scala.util._
 import scala.concurrent.duration._
 
 object ChaosActor extends App with ChaosCommands {
-  def defaultConfig(seed: InetAddress) = ConfigFactory.parseString(
+  def defaultConfig(seeds: Seq[String]) = ConfigFactory.parseString(
     s"""
        |akka.actor.provider = "akka.remote.RemoteActorRefProvider"
        |akka.remote.enabled-transports = ["akka.remote.netty.tcp"]
@@ -38,22 +38,38 @@ object ChaosActor extends App with ChaosCommands {
        |akka.test.single-expect-default = 10s
        |akka.loglevel = "ERROR"
        |
-       |eventuate.log.cassandra.contact-points = ["${seed.getHostName}"]
+       |eventuate.log.cassandra.contact-points = [${seeds.map(quote).mkString(",")}]
        |eventuate.log.cassandra.replication-factor = 3
      """.stripMargin)
 
-  def runChaosActor(seed: InetAddress): Unit = {
-    val system = ActorSystem("chaos", defaultConfig(seed))
+  private def quote(str: String) = "\"" + str + "\""
+
+  def runChaosActor(seeds: String*): Unit = {
+    val system = ActorSystem("chaos", defaultConfig(seeds))
     val log = system.actorOf(CassandraEventLog.props("chaos"))
     val actor = system.actorOf(Props(new ChaosActor(log)))
 
-    StdIn.readLine()
-    system.stop(actor)
+    val interface = system.actorOf(Props(new ChaosActorInterface(actor)))
+
+    // -d = daemon mode that does not listen on stdin (i.e. docker instances)
+    if (args.contains("-d")) {
+      Await.result(system.whenTerminated, Duration.Inf)
+    } else {
+      StdIn.readLine()
+      system.stop(interface)
+      system.stop(actor)
+      system.terminate
+    }
   }
 
-  seedAddress() match {
-    case Failure(err)  => err.printStackTrace()
-    case Success(seed) => runChaosActor(seed)
+  sys.env.get("CASSANDRA_NODES") match {
+    case Some(nodes) if nodes.nonEmpty =>
+      runChaosActor(nodes.split(","): _*)
+    case _ =>
+      seedAddress() match {
+        case Failure(err)  => err.printStackTrace()
+        case Success(seed) => runChaosActor(seed.getHostName)
+      }
   }
 }
 
@@ -69,19 +85,27 @@ class ChaosActor(val eventLog: ActorRef) extends EventsourcedActor {
   override def onCommand: Receive = {
     case i: Int => persist(i) {
       case Success(i) =>
-        onEvent(i)
         scheduleCommand()
       case Failure(e) =>
         failures += 1
         println(s"persist failure $failures: ${e.getMessage}")
         scheduleCommand()
     }
+
+    case cmd: ChaosActorInterface.HealthCheck =>
+      val chaosInterface = sender
+      persist(cmd) {
+        case Success(command) =>
+          chaosInterface ! HealthCheckResult(state, command.requester)
+        case Failure(e) =>
+          println(s"health check persist failed: ${e.getMessage}")
+      }
   }
 
   override def onEvent: Receive = {
     case i: Int =>
       state += i
-      println(s"state = $state (recovery = $recovering)")
+      println(s"counter = $state (recovery = $recovering)")
   }
 
   import context.dispatcher

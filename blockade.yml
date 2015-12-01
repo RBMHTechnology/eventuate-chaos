@@ -1,0 +1,30 @@
+containers:
+  c1:
+    image: cassandra:2.2.3
+
+  c2:
+    image: cassandra:2.2.3
+    start_delay: 60
+    links: ["c1"]
+    environment:
+      CASSANDRA_SEEDS: "c1.cassandra.docker"
+
+  c3:
+    image: cassandra:2.2.3
+    start_delay: 60
+    links: ["c1"]
+    environment:
+      CASSANDRA_SEEDS: "c1.cassandra.docker"
+
+  location-1:
+    image: eventuate-chaos/sbt
+    command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosActor -d"]
+    volumes:
+      "${PWD}": "/app"
+    ports:
+      8080: 8080
+    links: ["c2", "c3"]
+    environment:
+      CASSANDRA_NODES: "c1.cassandra.docker,c2.cassandra.docker,c3.cassandra.docker"
+
+# vim: set et sw=2 sts=2:
