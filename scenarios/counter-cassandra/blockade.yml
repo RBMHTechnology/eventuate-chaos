@@ -1,0 +1,60 @@
+containers:
+  c1:
+    image: cassandra:2.2.3
+    neutral: false
+
+  c11:
+    image: cassandra:2.2.3
+    neutral: false
+    links: ["c1"]
+    environment:
+      CASSANDRA_SEEDS: "c1.cassandra.docker"
+
+  c12:
+    image: cassandra:2.2.3
+    neutral: false
+    links: ["c11"]
+    start_delay: 60
+    environment:
+      CASSANDRA_SEEDS: "c1.cassandra.docker"
+
+  location1:
+    image: eventuate-chaos/sbt
+    command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosCounterCassandra location1 location2.sbt.docker location3.sbt.docker"]
+    neutral: false
+    ports:
+      10001: 8080
+    links: ["c12"]
+    volumes:
+      "${PWD}/../..": /app
+    environment:
+      HOSTNAME: "location1.sbt.docker"
+      CASSANDRA_NODES: "c1.cassandra.docker,c11.cassandra.docker,c12.cassandra.docker"
+
+  location2:
+    image: eventuate-chaos/sbt
+    command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosCounterCassandra location2 location1.sbt.docker location3.sbt.docker"]
+    neutral: false
+    ports:
+      10002: 8080
+    links: ["c12"]
+    volumes:
+      "${PWD}/../..": /app
+    environment:
+      HOSTNAME: "location2.sbt.docker"
+      CASSANDRA_NODES: "c1.cassandra.docker,c11.cassandra.docker,c12.cassandra.docker"
+
+  location3:
+    image: eventuate-chaos/sbt
+    command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosCounterCassandra location3 location1.sbt.docker location2.sbt.docker"]
+    neutral: false
+    ports:
+      10003: 8080
+    links: ["c12"]
+    volumes:
+      "${PWD}/../..": /app
+    environment:
+      HOSTNAME: "location3.sbt.docker"
+      CASSANDRA_NODES: "c1.cassandra.docker,c11.cassandra.docker,c12.cassandra.docker"
+
+# vim: set et sw=2 sts=2:
