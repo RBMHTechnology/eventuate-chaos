@@ -23,7 +23,7 @@ class Operation(object):
     def init(self, host, nodes):
         pass
 
-    def operation(self, iteration, state):
+    def operation(self, node, iteration, state):
         '''
         This method will be called on very iteration of a worker request. You
         may modify the passed 'state' object.
@@ -47,14 +47,14 @@ class RequestWorker(threading.Thread):
     def run(self):
         # initialize operation's state (if given)
         self.state = self.operation.init(self.host, self.nodes)
-        ports = self.nodes.values()
 
         while (self.operations is None or self.operations > 0) and not self.is_cancelled:
             if self.operations:
                 self.operations -= 1
 
-            port = random.choice(ports)
-            request(self.host, port, self.operation.operation(self.iterations, self.state))
+            node = random.choice(self.nodes.keys())
+            port = self.nodes[node]
+            request(self.host, port, self.operation.operation(node, self.iterations, self.state))
 
             self.iterations += 1
             time.sleep(self.interval)

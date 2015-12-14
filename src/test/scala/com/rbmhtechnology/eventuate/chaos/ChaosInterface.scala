@@ -27,6 +27,11 @@ abstract class ChaosInterface extends Actor with ActorLogging {
     receiver ! Tcp.Close
   }
 
+  protected def closeOnError(receiver: ActorRef): PartialFunction[Throwable, Unit] = {
+    case err: Throwable =>
+      receiver ! Tcp.Close
+  }
+
   def receive: Receive = {
     case Tcp.Connected(remote, _) =>
       sender ! Tcp.Register(self)
