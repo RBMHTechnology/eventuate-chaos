@@ -1,5 +1,7 @@
-.idea*
-*.log
-*.iml
 *.env
+*.iml
+*.log
+*.pyc
+.idea*
+.vagrant
 target/
