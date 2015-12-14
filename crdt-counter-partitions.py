@@ -45,7 +45,7 @@ class CounterOperation(interact.Operation):
 
         return self.state
 
-    def operation(self, idx, state):
+    def operation(self, node, idx, state):
         op = random.choice(['inc', 'dec'])
         value = random.randint(1, MAX_VALUE)
 

@@ -18,7 +18,7 @@ trait ChaosSetup extends App {
        |akka.remote.netty.tcp.hostname = "$hostname"
        |akka.remote.netty.tcp.port = 2552
        |akka.test.single-expect-default = 10s
-       |akka.loglevel = "ERROR"
+       |akka.loglevel = "INFO"
        |eventuate.log.batching.batch-size-limit = 16
        |eventuate.log.replication.batch-size-max = 16
        |eventuate.log.replication.read-timeout = 3s
