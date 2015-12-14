@@ -167,6 +167,20 @@ c3              4b630db6a19e    UP      172.17.0.4      NORMAL
 location-1      bb8c89f615ef    UP      172.17.0.6      NORMAL
 ```
 
+##### DNS
+
+In case of errors please make sure the `dnsdock` container is running and has its entry in your `/etc/resolv.conf`. You
+can use the `start-dns.sh` script to check:
+
+``` bash
+# start the DNS if not running
+$ ./start-dns.sh
+
+# make an entry in your /etc/resolv.conf if necessary
+$ sudo ./start-dns.sh -f
+```
+
+
 ### failures
 
 From now on you may introduce any kind of failure the [blockade][blockade] tool supports.
@@ -333,8 +347,23 @@ test successfully finished
 ```
 
 
+Additional test scenarios
+-------------------------
+
+In the `scenarios` subdirectory of this repository you can find several more complex test scenarios you may inspect
+and/or test on your own:
+
+- [counter](./scenarios/counter/): operation based CRDT Counter service using a LevelDB backend
+- [counter-cassandra](./scenarios/counter-cassandra/): operation based CRDT Counter service using a Cassandra storage
+  backend
+- [counter-cassandra-acyclic](./scenarios/counter-cassandra-acyclic/): operation based CRDT Counter service using a
+  Cassandra backend with an acyclic replication network
+- [state-cassandra](./scenarios/state-cassandra/): Eventuate application that runs a rather simple testing actor which
+  accumulates its events (good for testing/debugging purposes)
+
+
 Auxiliary notes
------------------
+---------------
 
 Below you can find some random remarks on problems or issues you may run into while chaos testing with the
 aforementioned methods and tools.

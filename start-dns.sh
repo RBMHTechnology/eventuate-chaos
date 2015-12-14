@@ -22,6 +22,7 @@ if ! grep "$DOCKER_IFACE" /etc/resolv.conf >/dev/null; then
         sed -i "1i nameserver $DOCKER_IFACE" /etc/resolv.conf
     else
         echo "you may want to add 'nameserver $DOCKER_IFACE' to your resolv.conf"
+        echo "alternatively you can call this script with the '-f' flag: '$0 -f' (with root permissions)"
     fi
 fi
 
