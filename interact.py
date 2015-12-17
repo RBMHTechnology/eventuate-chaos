@@ -48,10 +48,7 @@ class RequestWorker(threading.Thread):
         # initialize operation's state (if given)
         self.state = self.operation.init(self.host, self.nodes)
 
-        while (self.operations is None or self.operations > 0) and not self.is_cancelled:
-            if self.operations:
-                self.operations -= 1
-
+        while (self.operations is None or self.iterations < self.operations) and not self.is_cancelled:
             node = random.choice(self.nodes.keys())
             port = self.nodes[node]
             request(self.host, port, self.operation.operation(node, self.iterations, self.state))
@@ -64,27 +61,30 @@ class RequestWorker(threading.Thread):
 
 
 def request(ip, port, message):
-    # connect
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(1.0)
-    sock.connect((ip, port))
-
-    # request
-    sock.send(message)
-    data = []
-
     try:
-        while True:
-            received = sock.recv(BUFFER_SIZE)
-            if not received:
-                break
-            data.append(received)
-    except socket.timeout:
-        pass
-    finally:
-        # disconnect
-        sock.close()
-    return ''.join(data)
+        # connect
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1.0)
+        sock.connect((ip, port))
+
+        try:
+            # request
+            sock.send(message)
+            data = []
+
+            while True:
+                received = sock.recv(BUFFER_SIZE)
+                if not received:
+                    break
+                data.append(received)
+        except socket.timeout:
+            pass
+        finally:
+            # disconnect
+            sock.close()
+        return ''.join(data)
+    except socket.error:
+        return None
 
 
 def is_healthy(ip, port, message, verbose=True):
@@ -117,10 +117,14 @@ def _print_partitions(partitions):
             print('Partition %d: %s' % (idx+1, ', '.join(part)))
 
 
-def requests_with_chaos(operation, host, nodes, iterations, interval, settle=SETTLE_TIMEOUT, failure_delay=FAILURE_DELAY):
+def requests_with_chaos(operations, host, nodes, iterations, interval, settle=SETTLE_TIMEOUT, failure_delay=FAILURE_DELAY, restarts=0.2):
     print('Chaos iterations: %d' % iterations)
     print('Request interval: %.3f sec' % interval)
+    print('Operation runners: %d' % len(operations))
     print('Failure delay: %d sec' % failure_delay)
+
+    restart_prob = max(min(restarts, 1.0), 0.0)
+    print('Restart probability: %.2f%%' % (restart_prob * 100.0))
 
     print('Nodes:')
     for node in nodes.keys():
@@ -129,17 +133,21 @@ def requests_with_chaos(operation, host, nodes, iterations, interval, settle=SET
     # wait for system to be ready and initialized
     wait_to_be_running(host, nodes)
 
+    workers = [RequestWorker(host, nodes, op, interval=interval) for op in operations]
+
+    def for_workers(func):
+        for worker in workers:
+            func(worker)
     try:
-        worker = RequestWorker(host, nodes, operation, interval=interval)
-        worker.start()
+        for_workers(RequestWorker.start)
 
         # initialize blockade interface
         cfg = blockade.cli.load_config('blockade.yml')
         blk = blockade.cli.get_blockade(cfg)
 
-        def random_network(node):
+        def random_network():
             failure = random.choice([blk.fast, blk.flaky, blk.slow])
-            failure([node], None)
+            return failure(None, None, select_random=True)
 
         delay = failure_delay / 2
 
@@ -150,13 +158,21 @@ def requests_with_chaos(operation, host, nodes, iterations, interval, settle=SET
             print('-' * 25)
             time.sleep(delay)
 
-            # trigger random network failure (slow, flaky...)
-            random_network(random.choice(nodes.keys()))
+            # we either schedule a restart of a
+            # running node or we trigger a network failure
+            if random.random() < restart_prob:
+                restarted = list(blk.restart(None, blk.state_factory.load(), select_random=True))
+                print('Restarting %s...' % (', '.join(restarted)))
+                print('-' * 25)
+            else:
+                # random network failure (slow, flaky...)
+                random_network()
+
             time.sleep(delay)
 
     except (KeyboardInterrupt, blockade.errors.BlockadeError) as err:
-        worker.cancel()
-        worker.join()
+        for_workers(RequestWorker.cancel)
+        for_workers(RequestWorker.join)
 
         if err is KeyboardInterrupt:
             blk.join()
@@ -166,8 +182,8 @@ def requests_with_chaos(operation, host, nodes, iterations, interval, settle=SET
         else:
             raise
 
-    worker.cancel()
-    worker.join()
+    for_workers(RequestWorker.cancel)
+    for_workers(RequestWorker.join)
 
     print('Joining cluster - waiting %d seconds to settle...' % settle)
     blk.join()
@@ -175,7 +191,7 @@ def requests_with_chaos(operation, host, nodes, iterations, interval, settle=SET
 
     time.sleep(settle)
 
-    print('Processed %d requests in the meantime' % worker.iterations)
+    print('Processed %d requests in the meantime' % sum(w.iterations for w in workers))
     return True
 
 

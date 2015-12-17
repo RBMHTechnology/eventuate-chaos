@@ -29,7 +29,7 @@ Prerequisites
 #### Linux
 
 - [Docker][docker] (tested with docker >= 1.6)
-- [blockade][blockade] (currently a fork of the original [dcm-oss/blockade](https://github.com/dcm-oss/blockade))
+- [blockade][blockade] (>= 0.2.0, currently a fork of the original [dcm-oss/blockade](https://github.com/dcm-oss/blockade))
 
 ##### Initial setup
 
