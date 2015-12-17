@@ -24,5 +24,8 @@ class ChaosCounterInterface(service: CounterService[Int]) extends ChaosInterface
         .onFailure {
           case err => log.error(err, "Failed to retrieve counter value")
         }
+    case ("dump", None, recv) =>
+      service.log ! "dump"
+      recv ! ""
   }
 }

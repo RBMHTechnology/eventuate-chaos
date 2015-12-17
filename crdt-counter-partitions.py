@@ -33,6 +33,15 @@ def check_counters(nodes):
     return int(counters[0])
 
 
+def dump_logs(nodes):
+    if len(nodes) < 1:
+        raise ValueError('no nodes given')
+
+    for node, port in nodes.items():
+        interact.request(HOST, port, 'dump')
+
+    return ''
+
 class CounterOperation(interact.Operation):
 
     def __init__(self):
@@ -61,7 +70,7 @@ class CounterOperation(interact.Operation):
 
 
 if __name__ == '__main__':
-    SETTLE_TIMEOUT = 30
+    SETTLE_TIMEOUT = 120
     PARSER = argparse.ArgumentParser(description='start CRDT-counter chaos test')
     PARSER.add_argument('-i', '--iterations', type=int, default=30, help='number of failure/partition iterations')
     PARSER.add_argument('--interval', type=float, default=0.1, help='delay between requests')
@@ -81,6 +90,7 @@ if __name__ == '__main__':
 
     EXPECTED_VALUE = OP.get_counter()
     COUNTER_VALUE = check_counters(NODES)
+    dump_logs(NODES)
 
     if COUNTER_VALUE is None:
         sys.exit(1)
