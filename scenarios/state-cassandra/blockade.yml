@@ -1,11 +1,13 @@
 containers:
   c1:
     image: cassandra:2.2.3
+    container_name: c1
     neutral: false
     #holy: true
 
   c11:
     image: cassandra:2.2.3
+    container_name: c11
     neutral: false
     #holy: true
     links: ["c1"]
@@ -14,6 +16,7 @@ containers:
 
   c12:
     image: cassandra:2.2.3
+    container_name: c12
     neutral: false
     #holy: true
     links: ["c11"]
@@ -23,6 +26,7 @@ containers:
 
   location1:
     image: eventuate-chaos/sbt
+    container_name: location1
     command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosStateCassandra location1 location2.sbt.docker location3.sbt.docker"]
     neutral: false
     ports:
@@ -36,6 +40,7 @@ containers:
 
   location2:
     image: eventuate-chaos/sbt
+    container_name: location2
     command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosStateCassandra location2 location1.sbt.docker location3.sbt.docker"]
     neutral: false
     ports:
@@ -49,6 +54,7 @@ containers:
 
   location3:
     image: eventuate-chaos/sbt
+    container_name: location3
     command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosStateCassandra location3 location1.sbt.docker location2.sbt.docker"]
     neutral: false
     ports:
