@@ -90,7 +90,6 @@ if __name__ == '__main__':
 
     EXPECTED_VALUE = OP.get_counter()
     COUNTER_VALUE = check_counters(NODES)
-    dump_logs(NODES)
 
     if COUNTER_VALUE is None:
         sys.exit(1)
