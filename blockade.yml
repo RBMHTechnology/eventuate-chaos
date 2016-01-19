@@ -1,9 +1,11 @@
 containers:
   c1:
     image: cassandra:2.2.3
+    container_name: c1
 
   c2:
     image: cassandra:2.2.3
+    container_name: c2
     start_delay: 60
     links: ["c1"]
     environment:
@@ -11,12 +13,14 @@ containers:
 
   c3:
     image: cassandra:2.2.3
+    container_name: c3
     start_delay: 60
     links: ["c1"]
     environment:
       CASSANDRA_SEEDS: "c1.cassandra.docker"
 
   location-1:
+    container_name: location-1
     image: eventuate-chaos/sbt
     command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosActor -d"]
     volumes:

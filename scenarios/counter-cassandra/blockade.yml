@@ -1,10 +1,12 @@
 containers:
   c1:
     image: cassandra:2.2.3
+    container_name: c1
     neutral: false
 
   c11:
     image: cassandra:2.2.3
+    container_name: c11
     neutral: false
     links: ["c1"]
     environment:
@@ -12,6 +14,7 @@ containers:
 
   c12:
     image: cassandra:2.2.3
+    container_name: c12
     neutral: false
     links: ["c11"]
     start_delay: 60
@@ -20,6 +23,7 @@ containers:
 
   location1:
     image: eventuate-chaos/sbt
+    container_name: location1
     command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosCounterCassandra location1 location2.sbt.docker location3.sbt.docker"]
     neutral: false
     ports:
@@ -33,6 +37,7 @@ containers:
 
   location2:
     image: eventuate-chaos/sbt
+    container_name: location2
     command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosCounterCassandra location2 location1.sbt.docker location3.sbt.docker"]
     neutral: false
     ports:
@@ -46,6 +51,7 @@ containers:
 
   location3:
     image: eventuate-chaos/sbt
+    container_name: location3
     command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosCounterCassandra location3 location1.sbt.docker location2.sbt.docker"]
     neutral: false
     ports:
