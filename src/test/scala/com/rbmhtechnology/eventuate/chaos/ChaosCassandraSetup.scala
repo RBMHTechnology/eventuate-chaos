@@ -16,6 +16,8 @@ trait ChaosCassandraSetup extends ChaosSetup {
        |eventuate.log.cassandra.index-update-limit = 16
        |eventuate.log.cassandra.read-consistency = "QUORUM"
        |eventuate.log.cassandra.write-consistency = "QUORUM"
+       |eventuate.log.cassandra.init-retry-max = 50
+       |eventuate.log.cassandra.connect-retry-max = 50
      """.stripMargin))
 
   def cassandras = sys.env.get("CASSANDRA_NODES").map(_.split(","))
