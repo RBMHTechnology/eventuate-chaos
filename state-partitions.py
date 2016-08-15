@@ -60,12 +60,12 @@ class StateOperation(interact.Operation):
 
 
 if __name__ == '__main__':
-    SETTLE_TIMEOUT = 30
     PARSER = argparse.ArgumentParser(description='start state actor chaos test')
     PARSER.add_argument('-i', '--iterations', type=int, default=30, help='number of failure/partition iterations')
     PARSER.add_argument('--interval', type=float, default=0.1, help='delay between requests')
     PARSER.add_argument('-l', '--locations', type=int, default=3, help='number of locations')
     PARSER.add_argument('-d', '--delay', type=int, default=10, help='delay between each random partition')
+    PARSER.add_argument('--settle', type=int, default=60, help='final timeout for application to settle')
 
     ARGS = PARSER.parse_args()
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     NODES = dict(('location%d' % idx, 10000+idx) for idx in xrange(1, ARGS.locations+1))
     OP = StateOperation()
 
-    if not interact.requests_with_chaos(OP, HOST, NODES, ARGS.iterations, ARGS.interval, SETTLE_TIMEOUT, ARGS.delay):
+    if not interact.requests_with_chaos(OP, HOST, NODES, ARGS.iterations, ARGS.interval, ARGS.settle, ARGS.delay):
         sys.exit(1)
 
     print('Requests: %s' % OP.values)
