@@ -29,7 +29,7 @@ Prerequisites
 #### Linux
 
 - [Docker][docker] (tested with docker >= 1.6)
-- [blockade][blockade] (`>= 0.2.0`, currently a fork of the original [dcm-oss/blockade](https://github.com/dcm-oss/blockade))
+- [blockade][blockade] (`>= 0.2.0`)
 
 ##### Initial setup
 
@@ -60,6 +60,7 @@ These steps only have to be taken once for the initial bootstrapping.
 
 #### Mac OS
 
+- [Docker Toolbox][toolbox]
 - [Vagrant][vagrant] (tested with 1.7.4)
 - [VirtualBox](https://www.virtualbox.org/)
 
@@ -79,6 +80,14 @@ $ vagrant ssh
 # mounted under /vagrant as usual
 cd /vagrant
 ```
+
+
+##### Docker toolbox
+
+Although Mac recently got a *native* [Docker for Mac](https://docs.docker.com/docker-for-mac/) implementation you still
+have to use the [Docker Toolbox][toolbox] (which interfaces VirtualBox) to use Blockade and therefore *eventuate-chaos*
+itself. This is because Blockade uses the linux `iptables` and `tc` tools to establish and simulate network
+interference.
 
 
 Example test setup
@@ -404,6 +413,7 @@ start`, `blockade stop`, `blockade restart`, `blockade up` and `blockade destroy
 
 
 [docker]: https://www.docker.com/
-[blockade]: https://github.com/kongo2002/blockade
+[blockade]: https://github.com/dcm-oss/blockade
 [vagrant]: https://www.vagrantup.com/
 [eventuate]: https://github.com/RBMHTechnology/eventuate
+[toolbox]: https://docs.docker.com/docker-for-mac/docker-toolbox/
