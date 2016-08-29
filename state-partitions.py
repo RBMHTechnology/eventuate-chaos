@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import argparse
+import random
 import re
 import sys
 
@@ -21,6 +22,7 @@ def check_states(nodes):
     for node, port in nodes.items():
         result = interact.request(HOST, port, 'get')
         if not result:
+            print('Failed to retrieve state of %s' % node)
             return None
 
         state = result[1:-1].split(',')
@@ -37,8 +39,9 @@ def check_states(nodes):
 
 class StateOperation(interact.Operation):
 
-    def __init__(self):
+    def __init__(self, crash):
         self.idx = 0
+        self.crash = max(0.0, min(crash, 1.0))
         self.values = []
 
     def init(self, host, nodes):
@@ -52,6 +55,9 @@ class StateOperation(interact.Operation):
                 self.idx = int(match.group(1))
 
     def operation(self, node, idx, state):
+        if random.random() < self.crash:
+            return 'crash'
+
         self.idx += 1
         value = '%s %d' % (node, self.idx)
         self.values.append(value)
@@ -65,7 +71,10 @@ if __name__ == '__main__':
     PARSER.add_argument('--interval', type=float, default=0.1, help='delay between requests')
     PARSER.add_argument('-l', '--locations', type=int, default=3, help='number of locations')
     PARSER.add_argument('-d', '--delay', type=int, default=10, help='delay between each random partition')
+    PARSER.add_argument('-r', '--runners', type=int, default=1, help='number of request runners')
     PARSER.add_argument('--settle', type=int, default=60, help='final timeout for application to settle')
+    PARSER.add_argument('--crash', type=float, default=0.05, help='crash probability (in %%)')
+    PARSER.add_argument('--restarts', default=0.2, type=float, help='restart probability (in %%)')
 
     ARGS = PARSER.parse_args()
 
@@ -73,12 +82,10 @@ if __name__ == '__main__':
     # every location is named 'location<id>' and its TCP port (8080)
     # is mapped to the host port '10000+<id>'
     NODES = dict(('location%d' % idx, 10000+idx) for idx in xrange(1, ARGS.locations+1))
-    OP = StateOperation()
+    OPS = [StateOperation(ARGS.crash / ARGS.runners) for _ in xrange(ARGS.runners)]
 
-    if not interact.requests_with_chaos(OP, HOST, NODES, ARGS.iterations, ARGS.interval, ARGS.settle, ARGS.delay):
+    if not interact.requests_with_chaos(OPS, HOST, NODES, ARGS.iterations, ARGS.interval, ARGS.settle, ARGS.delay, ARGS.restarts):
         sys.exit(1)
-
-    print('Requests: %s' % OP.values)
 
     states = check_states(NODES)
     if not states:

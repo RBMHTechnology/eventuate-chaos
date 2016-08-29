@@ -1,9 +1,13 @@
 package com.rbmhtechnology.eventuate.chaos
 
 import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.pattern.BackoffSupervisor
 import com.rbmhtechnology.eventuate.ReplicationConnection
 import com.rbmhtechnology.eventuate.ReplicationEndpoint
 import com.typesafe.config.ConfigFactory
+
+import scala.concurrent.duration.DurationInt
 
 trait ChaosSetup extends App {
 
@@ -26,6 +30,10 @@ trait ChaosSetup extends App {
      """.stripMargin)
 
   protected def quote(str: String) = "\"" + str + "\""
+
+  /** starts the actor watched by a `BackoffSupervisor` */
+  protected def supervised(props: Props, name: String): Props =
+    BackoffSupervisor.props(props, name, 1.second, 30.seconds, 0.1)
 
   def name = {
     if (args == null || args.length < 1) {
