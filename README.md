@@ -29,7 +29,7 @@ Prerequisites
 #### Linux
 
 - [Docker][docker] (tested with docker >= 1.6)
-- [blockade][blockade] (`>= 0.2.0`)
+- [blockade][blockade] (`>= 0.2.0`, currently a fork of the original [dcm-oss/blockade](https://github.com/dcm-oss/blockade))
 
 ##### Initial setup
 
@@ -413,7 +413,7 @@ start`, `blockade stop`, `blockade restart`, `blockade up` and `blockade destroy
 
 
 [docker]: https://www.docker.com/
-[blockade]: https://github.com/dcm-oss/blockade
+[blockade]: https://github.com/kongo2002/blockade
 [vagrant]: https://www.vagrantup.com/
 [eventuate]: https://github.com/RBMHTechnology/eventuate
 [toolbox]: https://docs.docker.com/docker-for-mac/docker-toolbox/
