@@ -11,13 +11,24 @@ fi
 
 # get setuptools
 apt-get update
-apt-get install -y python-pip
+apt-get install -y python-setuptools
 
 # get blockade
-pip install 'blockade==0.2.0'
+if [ -d "/blockade" ]; then
+    cd /blockade
+    git fetch origin
+    git reset --hard origin/master
+else
+    git clone https://github.com/kongo2002/blockade.git /blockade
+fi
+
+# build blockade
+cd /blockade
+python setup.py develop
 
 # pull required docker images
 docker pull cassandra:2.2.3
+docker pull cassandra:3.7
 docker pull tonistiigi/dnsdock
 
 docker build -t eventuate-chaos/sbt /vagrant

@@ -8,7 +8,7 @@ scalaVersion := "2.11.7"
 
 resolvers += "Eventuate Releases" at "https://dl.bintray.com/rbmhtechnology/maven"
 
-val eventuateVersion = "0.7.1"
+val eventuateVersion = "0.8-M1"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"  %% "akka-actor"              % "2.4.4",
