@@ -1,10 +1,11 @@
 Eventuate chaos testing utilities
 =================================
 
-This is very early work in progress on chaos testing utilities for [Eventuate][eventuate] and [Apache
-Cassandra](http://cassandra.apache.org/). They support running Cassandra clusters and Eventuate applications with
-[Docker][docker] and using [blockade][blockade] to easily generate failures like stopping and restarting of containers
-and introducing network failures such as partitions, packet loss and slow connections.
+This repository contains some chaos testing utilities for [Eventuate][eventuate], [Apache
+Cassandra](http://cassandra.apache.org/) and [Level-DB](https://github.com/google/leveldb). They support running
+Cassandra clusters and Eventuate applications with [Docker][docker] and using [blockade][blockade] to easily generate
+failures like stopping and restarting of containers and introducing network failures such as partitions, packet loss and
+slow connections.
 
 This repository can be seen as a toolkit or collection of utilities which you can use to test your Eventuate
 applications. Moreover we are going to describe an examplary test setup that gives an introduction into these tools and
