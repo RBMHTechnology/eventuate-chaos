@@ -31,26 +31,8 @@ trait ChaosCommands {
       .map(_.split("="))
       .foldLeft(Seq[(String, String)]()) { case (acc, kv) => acc :+ (kv(0) -> kv(1)) }.toArray
 
-  def startCluster(numNodes: Int): Try[Unit] =
-    runCommand(Seq("./cluster-start.sh", numNodes.toString))
-
-  def stopCluster(): Try[Unit] =
-    runCommand("./cluster-stop.sh")
-
-  def startNodes(nodes: Seq[Int]): Try[Unit] =
-    runCommand(Seq("docker", "start") ++ nodes.map(i => s"cassandra-$i"))
-
-  def killNodes(nodes: Seq[Int]): Try[Unit] =
-    runCommand(Seq("docker", "kill") ++ nodes.map(i => s"cassandra-$i"))
-
   def seedAddress(): Try[InetAddress] =
-    runCommand(Seq("docker", "inspect", "--format='{{ .NetworkSettings.IPAddress }}'", "cassandra-1"), _.!!.trim).map(InetAddress.getByName(_))
-
-  private def runCommand(command: String): Try[Unit] =
-    runCommand(Seq(command))
-
-  private def runCommand(command: Seq[String]): Try[Unit] =
-    runCommand(command, _.lineStream.foreach(println))
+    runCommand(Seq("docker", "inspect", "--format='{{ .NetworkSettings.IPAddress }}'", "cassandra-1"), _.!!.trim).map(InetAddress.getByName)
 
   private def runCommand[A](command: Seq[String], f: ProcessBuilder => A): Try[A] =
     Try(f(Process(command, None, environment: _*)))

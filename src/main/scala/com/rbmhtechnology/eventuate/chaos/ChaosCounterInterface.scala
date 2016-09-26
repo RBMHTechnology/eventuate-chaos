@@ -19,6 +19,7 @@ class ChaosCounterInterface(service: CounterService[Int]) extends ChaosInterface
           case err => log.error(err, "Failed to decrement counter by {}", v)
         }
     case ("get", None, recv) =>
+      println("##################### GET Counter")
       service.value(testId)
         .map(value => reply(value.toString, recv))
         .onFailure {
