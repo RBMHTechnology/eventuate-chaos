@@ -7,7 +7,6 @@ import random
 import re
 import sys
 
-import blockade.cli
 import interact
 
 
@@ -54,7 +53,7 @@ class StateOperation(interact.Operation):
             if match:
                 self.idx = int(match.group(1))
 
-    def operation(self, node, idx, state):
+    def operation(self, node, idx):
         if random.random() < self.crash:
             return 'crash'
 
@@ -71,7 +70,7 @@ if __name__ == '__main__':
     PARSER.add_argument('--interval', type=float, default=0.1, help='delay between requests')
     PARSER.add_argument('-l', '--locations', type=int, default=3, help='number of locations')
     PARSER.add_argument('-d', '--delay', type=int, default=10, help='delay between each random partition')
-    PARSER.add_argument('-r', '--runners', type=int, default=1, help='number of request runners')
+    PARSER.add_argument('-r', '--runners', type=int, default=3, help='number of request runners')
     PARSER.add_argument('--settle', type=int, default=60, help='final timeout for application to settle')
     PARSER.add_argument('--crash', type=float, default=0.05, help='crash probability (in %%)')
     PARSER.add_argument('--restarts', default=0.2, type=float, help='restart probability (in %%)')

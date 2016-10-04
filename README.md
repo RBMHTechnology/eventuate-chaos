@@ -86,8 +86,8 @@ cd /vagrant
 ##### Docker toolbox
 
 Although Mac recently got a *native* [Docker for Mac](https://docs.docker.com/docker-for-mac/) implementation you still
-have to use the [Docker Toolbox][toolbox] (which interfaces VirtualBox) to use Blockade and therefore *eventuate-chaos*
-itself. This is because Blockade uses the linux `iptables` and `tc` tools to establish and simulate network
+have to use the [Docker Toolbox][toolbox] (which interfaces VirtualBox) to use blockade and therefore *eventuate-chaos*
+itself. This is because blockade uses the linux `iptables` and `tc` tools to establish and simulate network
 interference.
 
 

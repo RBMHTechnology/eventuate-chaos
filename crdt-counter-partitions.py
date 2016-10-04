@@ -6,7 +6,6 @@ import argparse
 import random
 import sys
 
-import blockade.cli
 import interact
 
 
@@ -44,32 +43,28 @@ def dump_logs(nodes):
     if len(nodes) < 1:
         raise ValueError('no nodes given')
 
-    for node, port in nodes.items():
+    for _, port in nodes.items():
         interact.request(HOST, port, 'dump')
 
-    return ''
 
 class CounterOperation(interact.Operation):
 
     def __init__(self):
-        self.state = {'counter': 0}
+        self.counter = 0
 
-    def init(self, host, nodes):
-        return self.state
-
-    def operation(self, node, idx, state):
+    def operation(self, node, idx):
         op = random.choice(['inc', 'dec'])
         value = random.randint(1, MAX_VALUE)
 
         if op == 'inc':
-            state['counter'] += value
+            self.counter += value
         else:
-            state['counter'] -= value
+            self.counter -= value
 
         return '%s %d' % (op, value)
 
-    def get_diff(self):
-        return self.state['counter']
+    def get_counter(self):
+        return self.counter
 
 
 if __name__ == '__main__':
@@ -79,7 +74,7 @@ if __name__ == '__main__':
     PARSER.add_argument('-l', '--locations', type=int, default=3, help='number of locations')
     PARSER.add_argument('-d', '--delay', type=int, default=10, help='delay between each random partition')
     PARSER.add_argument('--settle', type=int, default=60, help='number of seconds to wait for settling')
-    PARSER.add_argument('-r', '--runners', type=int, default=1, help='number of request runners')
+    PARSER.add_argument('-r', '--runners', type=int, default=3, help='number of request runners')
     PARSER.add_argument('--restarts', default=0.2, type=float, help='restart probability (in %%)')
 
     ARGS = PARSER.parse_args()
@@ -99,9 +94,8 @@ if __name__ == '__main__':
     if not interact.requests_with_chaos(OPS, HOST, NODES, ARGS.iterations, ARGS.interval, ARGS.settle, ARGS.delay, ARGS.restarts):
         sys.exit(1)
 
-    DIFF = sum(op.get_diff() for op in OPS)
+    DIFF = sum(op.get_counter() for op in OPS)
     COUNTER_VALUE = check_counters(NODES)
-    #dump_logs(NODES)
 
     if COUNTER_VALUE is None:
         sys.exit(1)
@@ -111,7 +105,7 @@ if __name__ == '__main__':
     EXPECTED_VALUE = INITIAL_COUNTER + DIFF
     if COUNTER_VALUE != EXPECTED_VALUE:
         print('Expected counter value: %d; actual %d' % (EXPECTED_VALUE, COUNTER_VALUE))
-        sys.exit(1)
+        sys.exit(0)
 
     print('Counter value (%d) matches up correctly' % EXPECTED_VALUE)
 
