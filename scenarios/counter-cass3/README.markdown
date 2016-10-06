@@ -2,7 +2,7 @@
 # Chaos test of distributed operation-based Counter CRDT
 
 This test configuration establishes a setup of three eventuate locations connecting with a three node Cassandra
-(version `2.2.3`) cluster.
+(version `3.7`) cluster.
 
 - Eventuate locations
     - `location1`

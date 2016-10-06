@@ -11,7 +11,7 @@ fi
 
 # get setuptools
 apt-get update
-apt-get install python-setuptools
+apt-get install -y python-setuptools
 
 # get blockade
 if [ -d "/blockade" ]; then
@@ -28,6 +28,7 @@ python setup.py develop
 
 # pull required docker images
 docker pull cassandra:2.2.3
+docker pull cassandra:3.7
 docker pull tonistiigi/dnsdock
 
 docker build -t eventuate-chaos/sbt /vagrant
