@@ -1,0 +1,20 @@
+sudo: required
+
+language:
+  - scala
+services:
+  - docker
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/
+before_install: sudo ./provision.sh
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION universal:stage
+  - find $HOME/.sbt -name "*.lock" -exec rm {} +
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -exec rm {} +
+  - ./src/main/shell/start-test.sh src/scenarios/counter -i 20
+scala:
+  - 2.11.7
+jdk:
+  - oraclejdk8

@@ -68,7 +68,7 @@ class CounterOperation(interact.Operation):
 
 
 if __name__ == '__main__':
-    PARSER = argparse.ArgumentParser(description='start CRDT-counter chaos test')
+    PARSER = argparse.ArgumentParser(description='start CRDT-counter chaos test', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     PARSER.add_argument('-i', '--iterations', type=int, default=30, help='number of failure/partition iterations')
     PARSER.add_argument('--interval', type=float, default=0.1, help='delay between requests')
     PARSER.add_argument('-l', '--locations', type=int, default=3, help='number of locations')

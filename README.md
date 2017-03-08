@@ -8,14 +8,21 @@ failures like stopping and restarting of containers and introducing network fail
 slow connections.
 
 This repository can be seen as a toolkit or collection of utilities which you can use to test your Eventuate
-applications. Moreover we are going to describe an examplary test setup that gives an introduction into these tools and
+applications. An exemplary test setup gives an introduction into these tools and
 serves as a blueprint to build your own more complex test scenarios.
+
+In addition to this the repository contains five test scenarios that are used for testing Eventuate itself. One of them is 
+invoked through a [travis build](https://travis-ci.org/RBMHTechnology/eventuate-chaos) so the corresponding [`.travis.yml`](.travis.yml) 
+also serves as a blueprint on how to setup travis for continuous chaos tests.
 
 
 ##### Blockade
 
-The test scenarios we are about to create mainly facilitate the [blockade][blockade] tool. Blockade is a utility for
-testing network failures and partitions in distributed applications. Blockade uses Docker containers to run
+The test scenarios facilitate the [blockade][blockade] tool. 
+Blockade is a utility for
+testing network failures and partitions in distributed applications. Currently the tests are based 
+on a fork of the original [dcm-oss/blockade](https://github.com/dcm-oss/blockade). The next release 
+of that would allow to switch back to the original. Blockade uses Docker containers to run
 application processes and manages the network from the host system to create various failure scenarios. Docker itself is
 a container engine that allows you to package and run applications in a hardware-agnostic and platform-agnostic fashion -
 often called like somewhat *lightweight virtual machines*.
@@ -27,68 +34,76 @@ possibilities you have in addition to what is mentioned in here.
 Prerequisites
 -------------
 
-#### Linux
+### Using the vagrant VM
 
-- [Docker][docker] (tested with docker >= 1.6)
-- [blockade][blockade] (`>= 0.2.0`, currently a fork of the original [dcm-oss/blockade](https://github.com/dcm-oss/blockade))
+The [Vagrantfile](Vagrantfile) can be used to setup a virtual box VM that is ready ro tun the test-scenarios. It requires:
 
-##### Initial setup
-
-Given your Docker daemon is running and you have [blockade][blockade] in your `$PATH` you are basically ready to go. All
-you have to do once is to pull or build the necessary Docker containers the test cluster is based on:
-
-``` bash
-# cassandra image
-$ docker pull cassandra:2.2.3
-
-# sbt + scala + java8 base image
-$ docker build -t eventuate-chaos/sbt .
-```
-
-After that is done you can start the minimal docker DNS container that is used to identify the containers with each
-other:
-
-    $ ./start-dns.sh
-
-This script will look for the default `docker0` network interface and start a `dnsdock` image on port 53 for DNS
-discovery. You may have to specify the location to your *docker socket* via `$DOCKER_SOCKET` in case the script does not
-find it by itself:
-
-    $ DOCKER_SOCKET=/var/run/docker.sock ./start-dns.sh
-
-These steps only have to be taken once for the initial bootstrapping.
-
-
-#### Mac OS
-
-- [Docker Toolbox][toolbox]
 - [Vagrant][vagrant] (tested with 1.7.4)
 - [VirtualBox](https://www.virtualbox.org/)
 
-
-##### Initial setup
-
-As Docker does not run natively on Mac OS you have to use an existing [docker machine](https://docs.docker.com/machine/)
-setup and follow the steps under [Linux](#linux) or use the pre-configured [Vagrant][vagrant] image that ships with this
-repository. If you choose the latter you just have to build the image by running `vagrant up` and ssh into your new
-machine:
-
+To setup the (or start an existing) VM simply run
 ```bash
 $ vagrant up
-$ vagrant ssh
-
-# inside your virtual machine you can find the repository contents
-# mounted under /vagrant as usual
-cd /vagrant
 ```
 
+The VM is based on an ubuntu/trusty64 image with docker installed. The custom 
+[provision](provision.sh) script for the VM:
 
-##### Docker toolbox
+- Clones the blockade fork into `/blockade` and installs it in the pyhton environment
+- downloads docker images for cassandra 2.x/3.x and [dnsdock][dnsdock]
+- builds the docker image for the eventuate chaos test application. The image expects that the 
+  eventuate-chaos root folder is mounted under `/app` and the application is pre-packaged in `/app/target/universal/stage`
+   
+### Using Native Linux
 
-Although Mac recently got a *native* [Docker for Mac](https://docs.docker.com/docker-for-mac/) implementation you still
-have to use the [Docker Toolbox][toolbox] (which interfaces VirtualBox) to use blockade and therefore *eventuate-chaos*
-itself. This is because blockade uses the linux `iptables` and `tc` tools to establish and simulate network
-interference.
+To run the test scenarios natively under Linux the following is required:
+
+1. [Docker][docker] (tested with docker >= 1.6) 
+1. the [blockade][blockade] fork
+1. docker images for cassandra 2.x/3.x and [dnsdock][dnsdock]
+1. docker image for the eventuate-chaos application
+
+Steps 2.-4. can simply be executed through the [`provision.sh`](provision.sh) script:
+```bash
+$ sudo provision.sh
+```
+
+Running the tests
+-----------------
+
+In the `src/scenarios` subdirectory of this repository you can find several more complex test scenarios you can try out:
+
+- [counter](./src/scenarios/counter/): operation based CRDT Counter service using a LevelDB backend
+- [counter-cassandra](./src/scenarios/counter-cassandra/): operation based CRDT Counter service using a Cassandra 2.x storage
+  backend
+- [counter-cass-acyc](./src/scenarios/counter-cass-acyc/): operation based CRDT Counter service using a
+  Cassandra 2.x storage backend with an acyclic replication network
+- [counter-cass3](./src/scenarios/counter-cass3/): operation based CRDT Counter service using a
+  Cassandra 3.x storage backend 
+
+Before a test is started the application has to be built through `sbt universal:stage`. This does not only 
+compile the application but also pre-packages it under `target/universal/stage` along with all its dependencies 
+so it can be run from this folder. When running natively under Linux or when logged into the 
+VM through `vagrant ssh`, each test scenario can be started with
+
+```bash
+$ src/main/shell/start-test.sh src/scenario/<name>
+```
+
+When using the vagrant VM the tests can also be started directly from the host (without logging into the VM) with
+
+```bash
+$ src/main/shell/va-start-test.sh src/scenario/<name>
+```
+
+In each case a `dockdns` container is started and its address is added to `/etc/resolv.conf` if not already done. 
+Afterwards the application containers are started through blockade and subsequently the test script `crdt-counter-partitions.py`.
+This script issues commands to increment/decrement the application's counter and concurrently creates _chaos_ through blockade. 
+At the end it verifies that all application nodes converge to the same counter value and exits with return code 1
+if this is not the case.
+
+`start-test.sh` (likewise `va-start-test.sh`) forwards all arguments to `crdt-counter-partitions.py` so it can be called with `-h` to checkout 
+the various parameters for controlling the test run and the _chaos_.
 
 
 Example test setup
@@ -102,31 +117,60 @@ The examplary test setup we are describing in the following consists of 2 basic 
     [EventsourcedActor](http://rbmhtechnology.github.io/eventuate/user-guide.html#event-sourced-actors) that continually
     (every 2 seconds) emits an event that increments an internal counter by persisting it changes. You can find its
     implementation in [ChaosActor.scala](./src/test/scala/com/rbmhtechnology/eventuate/chaos/ChaosActor.scala). The
-    container which the scala application is running in is named `location-1`.
+    container running the scala application is named `location-1`.
 
 - **Cassandra cluster**:
 
-    This cassandra cluster contains 3 nodes each running in its own Docker container. The seed node `c1` is the
-    initially started one the remaining nodes `c2` and `c3` connect with.
+    This cassandra cluster contains 3 nodes each running in its own Docker container. The seed node `c1` is started 
+    initially while the remaining nodes `c2` and `c3` join the cluster later on.
 
+The Eventuate test application has to be built and pre-packaged through `sbt universal:stage`.
 
-#### Configuration
+### DNS docker image
+
+As mentioned before we are using the docker image `tonistiigi/dnsdock` in order to establish a lightweight DNS service
+among the docker containers. This is especially useful when containers are referencing each other in a fashion that
+would form a circular dependency of [docker links](http://docs.docker.com/engine/userguide/networking/dockernetworks/).
+
+This docker container can be started with the `start-dns.sh` script and is reachable under the name `dnsdock`. 
+The script `start-dns.sh` will look for the default `docker0` network interface and start a `dnsdock` image on port 53 for DNS
+discovery. You may have to specify the location to your *docker socket* via `$DOCKER_SOCKET` in case the script does not
+find it by itself:
+
+```bash
+$ DOCKER_SOCKET=/var/run/docker.sock ./src/main/shell/start-dns.sh
+```
+
+The current status of the dns service can be observed via
+
+```bash
+$ docker logs dnsdock
+```
+
+You may even integrate this DNS docker service into your host's DNS so that you can reference your containers by name.
+Usually you just have to add the docker interface's IP to your `/etc/resolv.conf` for that to work. The script 
+will do this for you, if you run it as root with the command line option `-f`
+
+```bash
+$ sudo ./src/main/shell/start-dns.sh -f
+```
+
+### Configuration
 
 The test setup described above is encoded in the `blockade.yml` YAML configuration file that is used by
 [blockade][blockade] to manage the test cluster:
 
-``` yaml
+```yaml
 containers:
   c1:
     image: cassandra:2.2.3
 
   c2:
     image: cassandra:2.2.3
-    start_delay: 60
     links:
-      c1: "c1"
+      c1: "c1" 
     environment:
-      CASSANDRA_SEEDS: "c1.cassandra.docker"
+      CASSANDRA_SEEDS: "c1.cassandra.docker" 
 
   c3:
     image: cassandra:2.2.3
@@ -137,8 +181,8 @@ containers:
       CASSANDRA_SEEDS: "c1.cassandra.docker"
 
   location-1:
-    image: eventuate-chaos/sbt
-    command: ["test:run-main com.rbmhtechnology.eventuate.chaos.ChaosActor -d"]
+    image: eventuate-chaos
+    command: ["-main",  "com.rbmhtechnology.eventuate.chaos.ChaosActor",  "-d"]
     volumes:
       "${PWD}": "/app"
     links: [ "c2", "c3" ]
@@ -146,14 +190,29 @@ containers:
       CASSANDRA_NODES: "c1.cassandra.docker,c2.cassandra.docker,c3.cassandra.docker"
 ```
 
+The configuration shows the three cassandra nodes (`c1`, `c2`, `c3`) and the application node (`location-1`) 
+each one running in its container. The `links` from `c2` and `c3` to `c1` just exist to ensure that 
+`c1` is started first and the others can connect to it (`CASSANDRA_SEEDS: "c1.cassandra.docker"`). 
+The names `<container-name>.<image-name>.docker` are resolved by the DNS service started through `start-dns.sh`.
 
-Running a Cassandra cluster
----------------------------
+Depending on the cassandra version (> 2.1) you have to configure a reasonable startup delay for each cassandra node
+that joins the cluster. The first (here `c2`) can join immediately, each following node needs a `startup-delay` 
+that increases linearly (here `c3` waits 60 seconds and thus a `c4` would need a delay of 120 seconds) (See the 
+[cassandra documentation](https://docs.datastax.com/en/cassandra/2.1/cassandra/operations/ops_add_node_to_cluster_t.html) for
+further information). 
+
+The application (`com.rbmhtechnology.eventuate.chaos.ChaosActor`) is started directly from the build directory 
+`target/universal/stage`. That is why eventuate-chaos' root folder is mounted (as volume) under 
+`/app` in the application's container (`$PWD` assumes that `blockade.yml` is in the project's root folder).
+
+
+Testing the setup
+-----------------
 
 ### blockade chaos cluster
 
-Now that you have all prerequisites fulfilled you can start up the [blockade][blockade] test cluster as it is configured
-in the `blockade.yml` shipped with this repository. From this point on you may freely experiment and modify all given
+Now that you have all prerequisites fulfilled you can start up the [blockade][blockade] test cluster with a 
+`blockade.yml` as given above. From this point on you may freely experiment and modify all given
 parameters and configurations as this is just a toolkit to get you started as quickly as possible.
 
 > Note that all blockade commands require root permissions.
@@ -162,10 +221,7 @@ parameters and configurations as this is just a toolkit to get you started as qu
 $ sudo blockade up
 ```
 
-Depending on the cassandra version (> 2.1) you have to configure a reasonable startup delay for every cassandra node
-like 60 seconds (see the
-[documentation](https://docs.datastax.com/en/cassandra/2.1/cassandra/operations/ops_add_node_to_cluster_t.html) for
-further information). This may increase the initial startup time a lot. Once all nodes are up and running you can
+Once all nodes are up and running you can
 inspect your running cluster via `blockade status`:
 
 ```bash
@@ -177,27 +233,13 @@ c3              4b630db6a19e    UP      172.17.0.4      NORMAL
 location-1      bb8c89f615ef    UP      172.17.0.6      NORMAL
 ```
 
-##### DNS
-
-In case of errors please make sure the `dnsdock` container is running and has its entry in your `/etc/resolv.conf`. You
-can use the `start-dns.sh` script to check:
-
-``` bash
-# start the DNS if not running
-$ ./start-dns.sh
-
-# make an entry in your /etc/resolv.conf if necessary
-$ sudo ./start-dns.sh -f
-```
-
-
 ### failures
 
 From now on you may introduce any kind of failure the [blockade][blockade] tool supports.
 
 ##### partition one cassandra node
 
-``` bash
+```bash
 $ sudo blockade partition c2
 NODE            CONTAINER ID    STATUS  IP              NETWORK    PARTITION
 c1              8ccf90e8f76e    UP      172.17.0.3      NORMAL     2
@@ -212,7 +254,7 @@ location-1      bb8c89f615ef    UP      172.17.0.6      NORMAL     2
 As you can see in the `PARTITION` column of the command output all cassandra nodes are separated from each other while
 the test application (`location-1`) can reach the cassandra node `c2` only.
 
-``` bash
+```bash
 $ sudo blockade partition c1 c3
 NODE            CONTAINER ID    STATUS  IP              NETWORK    PARTITION
 c1              8ccf90e8f76e    UP      172.17.0.3      NORMAL     1
@@ -224,7 +266,7 @@ location-1      bb8c89f615ef    UP      172.17.0.6      NORMAL     3
 
 ##### flaky network connection of the Eventuate node
 
-``` bash
+```bash
 $ sudo blockade flaky location-1
 NODE            CONTAINER ID    STATUS  IP              NETWORK    PARTITION
 c1              8ccf90e8f76e    UP      172.17.0.3      NORMAL     1
@@ -237,14 +279,15 @@ location-1      bb8c89f615ef    UP      172.17.0.6      FLAKY      3
 
 You may also restart one or multiple nodes and inspect the effect on the Eventuate application as well:
 
-    $ sudo blockade restart c2 c3
+```bash
+$ sudo blockade restart c2 c3
+```
 
 #### Inspect test application output
 
 While playing with the conditions of the test cluster you can see the Eventuate application output its current state
-(being the actual counter value) on stdout. This is my personal preference but I like to inspect the current Eventuate
-node's status in a [tmux](https://tmux.github.io/) split window while I modify the cluster's condition with `tmux
-split-window "docker logs -f location-1"`:
+(being the actual counter value) on stdout. For ongoing inspection run 
+`docker logs -f location-1`:
 
 
 ```
@@ -281,11 +324,11 @@ the cassandra cluster has settled to a stable condition (i.e. reconnect timeouts
 
 Consequently we expect the application to be able to persist any event while any or no cassandra node is partitioned
 from the test application container. You may inspect the state of the application with `docker logs -f location-1` like
-mentioned above or trigger a health check via the `./interact.py` python script:
+mentioned above or trigger a health check via the `./src/main/pyhton/interact.py` python script:
 
-``` bash
+```bash
 # on success the current state counter of the 'ChaosActor' is written to stdout
-$ ./interact.py
+$ ./src/main/pyhton/interact.py
 250
 
 # the check script exits with a non-zero status code on failure
@@ -294,7 +337,7 @@ $ echo $?
 ```
 
 The health check of the `interact.py` script instructs the test application to persist a special `HealthCheck` event and
-returns with the current counter state if the persist of that given event succeeded within 1 second. The script
+returns with the current counter state if the persist of that event succeeded within 1 second. The script
 basically sends a minor command (`"persist"`) via TCP on port 8080 - so you may achieve the same result via `telnet` as
 well.
 
@@ -304,7 +347,7 @@ well.
 On the contrary the Eventuate application must not be able to persist an event while only a minority of the cassandra
 nodes is available to itself. This happens as soon as you partition a combination of any two nodes like:
 
-``` bash
+```bash
 # this command creates a partition of c1 and c3 nodes leaving
 # the test application with only one reachable node (c2) behind
 $ sudo blockade partition c1,c3
@@ -316,19 +359,19 @@ $ sudo blockade partition c1,c3
 As soon as you remove all existing partitions or give the test application access to at least 2 cassandra nodes the
 event persistence should pick up its work again:
 
-``` bash
+```bash
 # remove all existing partitions
 $ sudo blockade join
 ```
 
 
-##### Examplary test script
+##### Exemplary test script
 
 Just to give a small example on how you might automate such tests you can find a very simple shell script in
-[scenarios/simple-partitions.sh](./scenarios/simple-partitions.sh) that checks for the expectations described above:
+[src/scenarios/simple-partitions.sh](./src/scenarios/simple-partitions.sh) that checks for the expectations described above:
 
-``` bash
-$ scenarios/simple-partitions.sh
+```bash
+$ src/scenarios/simple-partitions.sh
 *** checking working persistence with 1 node partition each
 partition of cassandra 'c1'
 waiting 40 seconds for cluster to settle...
@@ -357,41 +400,12 @@ test successfully finished
 ```
 
 
-Additional test scenarios
--------------------------
-
-In the `scenarios` subdirectory of this repository you can find several more complex test scenarios you may inspect
-and/or test on your own:
-
-- [counter](./scenarios/counter/): operation based CRDT Counter service using a LevelDB backend
-- [counter-cassandra](./scenarios/counter-cassandra/): operation based CRDT Counter service using a Cassandra storage
-  backend
-- [counter-cassandra-acyclic](./scenarios/counter-cassandra-acyclic/): operation based CRDT Counter service using a
-  Cassandra backend with an acyclic replication network
-- [state-cassandra](./scenarios/state-cassandra/): Eventuate application that runs a rather simple testing actor which
-  accumulates its events (good for testing/debugging purposes)
-
 
 Auxiliary notes
 ---------------
 
 Below you can find some random remarks on problems or issues you may run into while chaos testing with the
 aforementioned methods and tools.
-
-
-#### DNS docker image
-
-As mentioned before we are using the docker image `tonistiigi/dnsdock` in order to establish a lightweight DNS service
-among the docker containers. This is especially useful when containers are referencing each other in a fashion that
-would form a circular dependency of [docker links](http://docs.docker.com/engine/userguide/networking/dockernetworks/).
-
-You may even integrate this DNS docker service into your host's DNS so that you can reference your containers by name.
-Usually you just have to add the docker interface's IP to your `/etc/resolv.conf` for that to work.
-
-This docker container can be started with the `start-dns.sh` script and is reachable under the name `dnsdock`. This
-means you can observe its current status via
-
-    $ docker logs dnsdock
 
 
 #### Initial startup time
@@ -418,3 +432,4 @@ start`, `blockade stop`, `blockade restart`, `blockade up` and `blockade destroy
 [vagrant]: https://www.vagrantup.com/
 [eventuate]: https://github.com/RBMHTechnology/eventuate
 [toolbox]: https://docs.docker.com/docker-for-mac/docker-toolbox/
+[dnsdock]: https://github.com/aacebedo/dnsdock

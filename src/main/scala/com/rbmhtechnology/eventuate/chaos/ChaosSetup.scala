@@ -44,7 +44,7 @@ trait ChaosSetup extends App {
     }
   }
 
-  def hostname = sys.env.getOrElse("HOSTNAME", s"$name.sbt.docker")
+  def hostname = sys.env.getOrElse("HOSTNAME", s"$name.eventuate-chaos.docker")
 
   // replication connection to other node(s)
   def connections = args.drop(1).map { conn =>
