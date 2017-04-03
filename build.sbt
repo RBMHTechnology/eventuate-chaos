@@ -15,7 +15,7 @@ resolvers := Seq(
   "OJO Snapshots" at s"https://oss.jfrog.org/oss-snapshot-local"
 ) ++ resolvers.value
 
-val eventuateVersion = "0.8-M2"
+val eventuateVersion = "0.9"
 
 libraryDependencies ++= Seq(
   "com.rbmhtechnology" %% "eventuate-core"          % eventuateVersion,
