@@ -3,40 +3,37 @@
 from __future__ import print_function
 
 import argparse
-import random
 import sys
 
+import crdt_implementations as impl
 import interact
 
-
 HOST = '127.0.0.1'
-MAX_VALUE = 100
 
-
-def get_counter(host, port):
+def get_state(host, port, crdt):
     value = interact.request(host, port, 'get')
     if value:
-        return int(value)
+        return crdt.parse_state(value)
     return None
 
 
-def check_counters(nodes):
+def check_states(nodes, crdt):
     if len(nodes) < 1:
         raise ValueError('no nodes given')
 
-    counters = []
+    all_states = []
     for node, port in nodes.items():
-        counter = get_counter(HOST, port)
-        equal = all(x == counter for x in counters)
+        state = get_state(HOST, port,crdt)
+        equal = all(crdt.compare_states(x,state) for x in all_states)
 
         if not equal:
-            print('Counter of node "%s" [%s] does not match with other counters: %s' %
-                  (node, counter, counters))
+            print('State of node "%s" [%s] does not match with other states: %s' %
+                  (node, crdt.print_state(state), crdt.print_state(all_states[0])))
             return None
-        counters.append(counter)
+        all_states.append(state)
 
-    # all counters are the same -> return the first one for reference
-    return counters[0]
+    # all sets are the same -> return the first one for reference
+    return all_states[0]
 
 
 def dump_logs(nodes):
@@ -46,29 +43,17 @@ def dump_logs(nodes):
     for _, port in nodes.items():
         interact.request(HOST, port, 'dump')
 
-
-class CounterOperation(interact.Operation):
-
-    def __init__(self):
-        self.counter = 0
-
-    def operation(self, node, idx):
-        op = random.choice(['inc', 'dec'])
-        value = random.randint(1, MAX_VALUE)
-
-        if op == 'inc':
-            self.counter += value
-        else:
-            self.counter -= value
-
-        return '%s %d' % (op, value)
-
-    def get_counter(self):
-        return self.counter
+def crdt_to_test(argument):
+    switcher = {
+        "counter": impl.CounterTest(),
+        "awset": impl.AWSetTest()
+    }
+    return switcher.get(argument)
 
 
 if __name__ == '__main__':
-    PARSER = argparse.ArgumentParser(description='start CRDT-counter chaos test', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    PARSER = argparse.ArgumentParser(description='start CRDT-set chaos test', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    PARSER.add_argument('--crdt', required=True, choices=['counter', 'awset'], help='crdt implementation to test ')
     PARSER.add_argument('-i', '--iterations', type=int, default=30, help='number of failure/partition iterations')
     PARSER.add_argument('--interval', type=float, default=0.1, help='delay between requests')
     PARSER.add_argument('-l', '--locations', type=int, default=3, help='number of locations')
@@ -79,33 +64,28 @@ if __name__ == '__main__':
 
     ARGS = PARSER.parse_args()
 
+    crdt = crdt_to_test(ARGS.crdt)
+
     # we are making some assumptions in here:
     # every location is named 'location<id>' and its TCP port (8080)
     # is mapped to the host port '10000+<id>'
     NODES = dict(('location%d' % idx, 10000+idx) for idx in xrange(1, ARGS.locations+1))
-    OPS = [CounterOperation() for _ in xrange(ARGS.runners)]
+    OPS = [crdt.operation() for _ in xrange(ARGS.runners)] # type of Operation
 
     interact.wait_to_be_running(HOST, NODES)
 
-    INITIAL_COUNTER = check_counters(NODES)
-    if INITIAL_COUNTER is None:
+    INITIAL_STATE = check_states(NODES,crdt)
+    if INITIAL_STATE is None:
         sys.exit(1)
 
     if not interact.requests_with_chaos(OPS, HOST, NODES, ARGS.iterations, ARGS.interval, ARGS.settle, ARGS.delay, ARGS.restarts):
         sys.exit(1)
 
-    DIFF = sum(op.get_counter() for op in OPS)
-    COUNTER_VALUE = check_counters(NODES)
+    FINAL_STATE = check_states(NODES,crdt)
 
-    if COUNTER_VALUE is None:
+    if FINAL_STATE is None:
         sys.exit(1)
     else:
-        print('All %d nodes converged to the counter value: %d' % (len(NODES), COUNTER_VALUE))
+        print('All %d nodes converged to the same state: %s' % (len(NODES), crdt.print_state(FINAL_STATE)))
 
-    EXPECTED_VALUE = INITIAL_COUNTER + DIFF
-    if COUNTER_VALUE != EXPECTED_VALUE:
-        print('Expected counter value: %d; actual %d' % (EXPECTED_VALUE, COUNTER_VALUE))
-        sys.exit(0)
-
-    print('Counter value (%d) matches up correctly' % EXPECTED_VALUE)
 
