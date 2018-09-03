@@ -1,8 +1,34 @@
 package com.rbmhtechnology.eventuate.chaos
 
-import com.rbmhtechnology.eventuate.crdt.CounterService
+import com.rbmhtechnology.eventuate.chaos.ChaosCounterInterface.ChaosCounterService
+import com.rbmhtechnology.eventuate.crdt._
 
-class ChaosCounterInterface(service: CounterService[Int]) extends ChaosInterface {
+import scala.concurrent.Future
+
+
+object ChaosCounterInterface {
+
+  def apply(service: CounterService[Int]): ChaosCounterInterface = new ChaosCounterInterface(plainCounterService(service))
+
+  def apply(service: pure.CounterService[Int]): ChaosCounterInterface = new ChaosCounterInterface(pureCounterService(service))
+
+  trait ChaosCounterService[A] {
+    def update(id: String, delta: A): Future[A]
+
+    def value(id: String): Future[A]
+  }
+  def plainCounterService[A](service: CounterService[A]): ChaosCounterService[A] = new ChaosCounterService[A] {
+    override def update(id: String, delta: A): Future[A] = service.update(id, delta)
+    override def value(id: String): Future[A] = service.value(id)
+  }
+  def pureCounterService[A](service: pure.CounterService[A]): ChaosCounterService[A] = new ChaosCounterService[A] {
+    override def update(id: String, delta: A): Future[A] = service.update(id, delta)
+    override def value(id: String): Future[A] = service.value(id)
+  }
+}
+
+class ChaosCounterInterface(service: ChaosCounterService[Int]) extends ChaosInterface {
+
   val testId = "test"
 
   def handleCommand = {

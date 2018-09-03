@@ -2,14 +2,14 @@
 
 Home=$(readlink -e $(dirname $(readlink -e "$0"))/../../..)
 
-TestProg="$Home/src/main/python/crdt-counter-partitions.py"
+TestProg="$Home/src/main/python/crdt-partitions.py"
 
 startDns() {
   sudo "$Home/src/main/shell/start-dns.sh" -f
 }
 
 runTest() {
-  local scenarioDir="$1"
+  local scenarioDir="$Home/src/scenarios/$1"
   cd "$scenarioDir"
   shift
   echo "Start blockade in '$scenarioDir'"
@@ -20,7 +20,7 @@ runTest() {
   else
     ret=$?
     sudo blockade status
-    echo "containers are kept running (to ease analysis) and can be stopped with 'cd \"$scenarioDir\" && sudo blockade destroy'"
+    echo "containers are kept running (to ease analysis) and can be stopped with '(cd \"$scenarioDir\" && sudo blockade destroy)'"
     exit $ret
   fi
   sudo blockade destroy

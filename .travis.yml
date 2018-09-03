@@ -13,7 +13,9 @@ script:
   - sbt ++$TRAVIS_SCALA_VERSION universal:stage
   - find $HOME/.sbt -name "*.lock" -exec rm {} +
   - find $HOME/.ivy2 -name "ivydata-*.properties" -exec rm {} +
-  - ./src/main/shell/start-test.sh src/scenarios/counter -i 20
+  - ./src/main/shell/start-test.sh counter --crdt counter -i 20
+  - ./src/main/shell/start-test.sh pure-counter --crdt counter -i 20
+  - ./src/main/shell/start-test.sh awset --crdt awset -i 20
 scala:
   - 2.11.7
 jdk:

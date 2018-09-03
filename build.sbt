@@ -15,13 +15,16 @@ resolvers := Seq(
   "OJO Snapshots" at s"https://oss.jfrog.org/oss-snapshot-local"
 ) ++ resolvers.value
 
-val eventuateVersion = "0.10"
+val eventuateVersion = "0.11-M1"
+val eventuateOrg = "com.rbmhtechnology"
+
 
 libraryDependencies ++= Seq(
-  "com.rbmhtechnology" %% "eventuate-core"          % eventuateVersion,
-  "com.rbmhtechnology" %% "eventuate-log-leveldb"   % eventuateVersion,
-  "com.rbmhtechnology" %% "eventuate-log-cassandra" % eventuateVersion,
-  "com.rbmhtechnology" %% "eventuate-crdt"          % eventuateVersion,
+  eventuateOrg %% "eventuate-core"          % eventuateVersion,
+  eventuateOrg %% "eventuate-log-leveldb"   % eventuateVersion,
+  eventuateOrg %% "eventuate-log-cassandra" % eventuateVersion,
+  eventuateOrg %% "eventuate-crdt"          % eventuateVersion,
+  eventuateOrg %% "eventuate-crdt-pure"     % eventuateVersion,
   "org.slf4j"           % "slf4j-log4j12"           % "1.7.9"  % "test"
 )
 
